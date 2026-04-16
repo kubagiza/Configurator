@@ -348,7 +348,7 @@ SENSOR_DB = {
             ),
         },
         {
-            "name": "BMF003W",
+            "name": "BMF003W - przewód PUR, 3m",
             "link": "https://www.balluff.com/pl-pl/products/BMF003W",
             "note": (
                 " Wymiary 25.5 x 3 x 4.5 mm "
