@@ -1,0 +1,9 @@
+build/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+dist/ConfigSensorV2.exe
+dist/ConfigSensor/
+ActiveChange.txt
+Instrukcja.txt
