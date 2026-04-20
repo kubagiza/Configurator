@@ -269,6 +269,7 @@ class GitHubAppUpdater:
         exe_name = current_exe.name
         batch_source_path = to_localappdata_batch_path(source_path)
         batch_target_path = to_localappdata_batch_path(target_path)
+        batch_target_dir = to_localappdata_batch_path(target_path.parent)
         batch_restart_target = to_localappdata_batch_path(restart_target)
 
         script_content = (
@@ -282,7 +283,8 @@ class GitHubAppUpdater:
             ")\r\n"
             f'copy /Y "{batch_source_path}" "{batch_target_path}" >nul\r\n'
             f'del "{batch_source_path}" >nul 2>nul\r\n'
-            f'start "" "{batch_restart_target}"\r\n'
+            "timeout /t 1 /nobreak >nul\r\n"
+            f'start "" /D "{batch_target_dir}" "{batch_restart_target}"\r\n'
             'del "%~f0" >nul 2>nul\r\n'
         )
         script_path.write_text(
