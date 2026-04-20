@@ -301,8 +301,11 @@ def ensure_user_writable_runtime():
         return
 
     runtime_exe.parent.mkdir(parents=True, exist_ok=True)
-    if not runtime_exe.exists():
-        shutil.copy2(current_exe, runtime_exe)
+    temp_runtime_exe = runtime_exe.with_suffix(".new")
+    if temp_runtime_exe.exists():
+        temp_runtime_exe.unlink()
+    shutil.copy2(current_exe, temp_runtime_exe)
+    os.replace(temp_runtime_exe, runtime_exe)
 
     subprocess.Popen(
         [str(runtime_exe), *sys.argv[1:]],
