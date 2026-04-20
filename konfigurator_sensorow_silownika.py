@@ -1,5 +1,7 @@
 import json
+import locale
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -34,6 +36,7 @@ GROOVE_IMAGE_MAX_SIZE = (520, 260)
 NOTE_IMAGE_MAX_SIZE = (260, 180)
 APP_TITLE = "Konfigurator sensorow do silownika"
 APP_DIR_NAME = "ConfigSensor"
+APP_EXE_NAME = f"{APP_DIR_NAME}.exe"
 UPDATE_REPO_URL = "https://github.com/kubagiza/Configurator.git"
 GITHUB_API_BASE = "https://api.github.com"
 STATE_FILE_NAME = "update_state.json"
@@ -62,6 +65,29 @@ def get_runtime_base_dir():
 
 def get_update_work_dir():
     return get_runtime_base_dir() / "updater"
+
+
+def get_runtime_exe_path():
+    return get_runtime_base_dir() / APP_EXE_NAME
+
+
+def to_localappdata_batch_path(path):
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if not local_app_data:
+        return str(Path(path).resolve())
+
+    local_app_data_path = Path(local_app_data).resolve()
+    target_path = Path(path).resolve()
+
+    try:
+        relative_path = target_path.relative_to(local_app_data_path)
+    except ValueError:
+        return str(target_path)
+
+    relative_str = str(relative_path).replace("/", "\\")
+    if not relative_str:
+        return r"%LOCALAPPDATA%"
+    return rf"%LOCALAPPDATA%\{relative_str}"
 
 
 def parse_repo_url(repo_url):
@@ -204,12 +230,15 @@ class GitHubAppUpdater:
         return extracted_entries[0]
 
     def _prepare_frozen_update(self, extracted_root):
-        current_exe = Path(sys.executable).resolve()
         source_exe = self._find_replacement_exe(extracted_root)
+        staged_exe = self.work_dir / f"{self.app_name}.pending.exe"
+        target_exe = get_runtime_exe_path()
+        shutil.copy2(source_exe, staged_exe)
         script_path = self.work_dir / SELF_UPDATE_SCRIPT_NAME
-        self._write_self_update_script(script_path, source_exe, current_exe, current_exe)
+        self._write_self_update_script(script_path, staged_exe, target_exe, target_exe)
         subprocess.Popen(
             ["cmd", "/c", str(script_path)],
+            cwd=str(self.work_dir),
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
         return {
@@ -238,6 +267,9 @@ class GitHubAppUpdater:
         current_exe = Path(current_exe).resolve()
         restart_target = target_path
         exe_name = current_exe.name
+        batch_source_path = to_localappdata_batch_path(source_path)
+        batch_target_path = to_localappdata_batch_path(target_path)
+        batch_restart_target = to_localappdata_batch_path(restart_target)
 
         script_content = (
             "@echo off\r\n"
@@ -248,11 +280,36 @@ class GitHubAppUpdater:
             "    timeout /t 1 /nobreak >nul\r\n"
             "    goto waitloop\r\n"
             ")\r\n"
-            f'copy /Y "{source_path}" "{target_path}" >nul\r\n'
-            f'start "" "{restart_target}"\r\n'
-            f'del "{script_path}" >nul 2>nul\r\n'
+            f'copy /Y "{batch_source_path}" "{batch_target_path}" >nul\r\n'
+            f'del "{batch_source_path}" >nul 2>nul\r\n'
+            f'start "" "{batch_restart_target}"\r\n'
+            'del "%~f0" >nul 2>nul\r\n'
         )
-        script_path.write_text(script_content, encoding="ascii")
+        script_path.write_text(
+            script_content,
+            encoding=locale.getpreferredencoding(False),
+        )
+
+
+def ensure_user_writable_runtime():
+    if not getattr(sys, "frozen", False):
+        return
+
+    runtime_exe = get_runtime_exe_path().resolve()
+    current_exe = Path(sys.executable).resolve()
+    if current_exe == runtime_exe:
+        return
+
+    runtime_exe.parent.mkdir(parents=True, exist_ok=True)
+    if not runtime_exe.exists():
+        shutil.copy2(current_exe, runtime_exe)
+
+    subprocess.Popen(
+        [str(runtime_exe), *sys.argv[1:]],
+        cwd=str(runtime_exe.parent),
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    raise SystemExit
 
 
 SENSOR_DB = {
@@ -1468,5 +1525,6 @@ class SensorConfiguratorApp(tk.Tk):
 
 
 if __name__ == "__main__":
+    ensure_user_writable_runtime()
     app = SensorConfiguratorApp()
     app.mainloop()
