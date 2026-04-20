@@ -227,7 +227,9 @@ class GitHubAppUpdater:
 
         raise UpdateError(
             "Repozytorium nie zawiera gotowego builda do aktualizacji. "
-            "Dodaj do repo plik dist/ConfigSensor.exe."
+            "Program szuka pliku dist/ConfigSensor.exe wewnatrz pobranego repozytorium. "
+            "Adres GitHub z widocznym /tree/main/dist to tylko widok przegladarki, "
+            "a nie rzeczywista sciezka w archiwum ZIP."
         )
 
     def _write_self_update_script(self, script_path, source_path, target_path, current_exe):

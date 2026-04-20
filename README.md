@@ -176,7 +176,7 @@ Aplikacja ma przycisk `Aktualizuj aplikacje` na glownym panelu.
 
 Po kliknieciu program:
 
-- laczy sie z repozytorium `https://github.com/kubagiza/ConfigSensor.git`,
+- laczy sie z repozytorium `https://github.com/kubagiza/Configurator.git`,
 - sprawdza najnowszy commit na domyslnej galezi,
 - pobiera ZIP z repozytorium,
 - podmienia `ConfigSensor.exe` po zamknieciu programu,
@@ -186,6 +186,7 @@ Wazne:
 
 - klient finalnie powinien dostawac tylko jeden plik: `ConfigSensor.exe`,
 - w repozytorium musi byc dostepny gotowy build w `dist/ConfigSensor.exe`,
+- w przegladarce GitHub folder moze byc widoczny pod adresem typu `.../tree/main/dist`, ale w samym repo i w archiwum ZIP program szuka po prostu `dist/ConfigSensor.exe`,
 - sama zmiana kodu bez wrzucenia nowego builda do repo nie wystarczy do aktualizacji wersji klienckiej `.exe`.
 
 ## Ikona aplikacji
