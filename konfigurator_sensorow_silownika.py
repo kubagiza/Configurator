@@ -71,6 +71,10 @@ def get_runtime_exe_path():
     return get_runtime_base_dir() / APP_EXE_NAME
 
 
+def get_runtime_pending_exe_path():
+    return get_runtime_base_dir() / f"{APP_DIR_NAME}.pending.exe"
+
+
 def to_localappdata_batch_path(path):
     local_app_data = os.environ.get("LOCALAPPDATA")
     if not local_app_data:
@@ -231,8 +235,11 @@ class GitHubAppUpdater:
 
     def _prepare_frozen_update(self, extracted_root):
         source_exe = self._find_replacement_exe(extracted_root)
-        staged_exe = self.work_dir / f"{self.app_name}.pending.exe"
         target_exe = get_runtime_exe_path()
+        target_exe.parent.mkdir(parents=True, exist_ok=True)
+        staged_exe = get_runtime_pending_exe_path()
+        if staged_exe.exists():
+            staged_exe.unlink()
         shutil.copy2(source_exe, staged_exe)
         script_path = self.work_dir / SELF_UPDATE_SCRIPT_NAME
         self._write_self_update_script(script_path, staged_exe, target_exe, target_exe)
@@ -281,9 +288,13 @@ class GitHubAppUpdater:
             "    timeout /t 1 /nobreak >nul\r\n"
             "    goto waitloop\r\n"
             ")\r\n"
-            f'copy /Y "{batch_source_path}" "{batch_target_path}" >nul\r\n'
-            f'del "{batch_source_path}" >nul 2>nul\r\n'
-            "timeout /t 1 /nobreak >nul\r\n"
+            ":replaceloop\r\n"
+            f'move /Y "{batch_source_path}" "{batch_target_path}" >nul\r\n'
+            "if errorlevel 1 (\r\n"
+            "    timeout /t 1 /nobreak >nul\r\n"
+            "    goto replaceloop\r\n"
+            ")\r\n"
+            "timeout /t 2 /nobreak >nul\r\n"
             f'start "" /D "{batch_target_dir}" "{batch_restart_target}"\r\n'
             'del "%~f0" >nul 2>nul\r\n'
         )
