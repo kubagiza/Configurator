@@ -295,6 +295,7 @@ class GitHubAppUpdater:
             "    goto replaceloop\r\n"
             ")\r\n"
             "timeout /t 2 /nobreak >nul\r\n"
+            'set "PYINSTALLER_RESET_ENVIRONMENT=1"\r\n'
             f'start "" /D "{batch_target_dir}" "{batch_restart_target}"\r\n'
             'del "%~f0" >nul 2>nul\r\n'
         )
@@ -323,6 +324,7 @@ def ensure_user_writable_runtime():
     subprocess.Popen(
         [str(runtime_exe), *sys.argv[1:]],
         cwd=str(runtime_exe.parent),
+        env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"},
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     raise SystemExit
